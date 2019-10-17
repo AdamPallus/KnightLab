@@ -1,0 +1,285 @@
+---
+title: "Stats for Concussion Data"
+output:
+  html_document: 
+    fig_height: 7
+  html_notebook: default
+---
+
+
+```{r,message=FALSE,warning=FALSE}
+library(ggplot2)
+library(dplyr)
+library(broom)
+source('~/knight/ConcussionGaze/Scripts/knighthelperfunctions.R')
+
+samplerate<- 304.7508/1000
+
+path<- "F:/dropbox/kdata/april/"
+# path<- "C:/users/setup/dropbox/kdata/"
+
+h<-loadnewheadfree(path=path)
+
+#This is needed to fix all the issues with the new data files----
+
+#Drop the first 500 samples because they are just noise
+#convert head velocity to head position
+#Fix messed up data files with "#VALUE!" instead of NANs
+h %>%
+  group_by(block) %>%
+  dplyr::filter(time>500) %>%
+  mutate(H=cumsum(HV*1)/samplerate/1000+0,
+         E=replace(E,E=='#VALUE!',0),
+         E=as.numeric(as.character(E)))->
+  h
+
+#Use a 3rd degree polynomial to fix the head signal as it drifts around
+fixH<- function(t){
+  mod<- lm(H~poly(time,3),data=t)
+  t %>%
+    mutate(H=H-predict(mod,newdata=t))->
+    t
+  return(t)
+}
+
+h %>%
+  group_by(block) %>%
+  do(fixH(.)) %>%
+  mutate(G=H+E)->
+  h
+
+#Resume regular program----
+
+
+  
+
+# h<- AdjustCalibration(hraw,headoffset= 3,
+#                           eyeoffset=2.8,
+#                           # eyegain=0.621,
+#                           eyegain=0.7,
+#                           headgain=1,
+#                           applyfilter=FALSE)
+
+# h<- AdjustCalibration(hraw,headoffset=3)
+
+h%>%
+  select(G,H,Targ,block,subject,task,blocknum)%>%
+  group_by(block) %>%
+  filter(!is.na(G)) %>%
+  mutate(time=row_number(),
+         Graw=G,
+         G=replace(smooth(G,"3R"),G==0,NA), #mark missing data as NA rather than 0
+         Gnospline=G,
+         G= applyspline(G,6),
+         target.velocity=parabolicdiff(Targ,7)*samplerate,
+         Gv=parabolicdiff(G,7)*samplerate, #calculate velocity
+         Hv=parabolicdiff(H,7)*samplerate,
+         # gazeshifts=markMovementsDouble(Gv,threshold1=100,threshold2=10),
+         gazeshifts=markSaccadesDouble(Gv,threshold1=100,threshold2=20,
+                                       driftcorrect = TRUE,markFixations = FALSE),
+         headmovement=markMovementsDouble(Hv,threshold1=10,threshold2=4)) %>%
+  do(markTagetMovements(t=.,buffer=200,threshold=200,trial.length=500))%>%
+  filter(!is.na(trialnum))->
+  h
+
+#Force antisaccade gaze to be on target...
+h %>%
+  ungroup() %>%
+  mutate(Targ=replace(Targ,task=='AS' &  counter<200,0))->
+  h
+#measure trials join to previous table if needed
+h %>%
+  filter(!is.na(trialnum)) %>%
+  group_by(task,subject,block,trialnum) %>%
+  do(measureTrial(.))->
+  hm
+
+hm %>%
+  mutate(recenter=(task=='AS' & abs(IGP)>10)) %>%
+  filter(!recenter) %>%
+  select(-recenter)->
+  hm
+
+saveRDS(hm,'antisaccadeDashboard2018-3-29.RDS')
+#load the measured data. See previous report for this process. 
+# hm <- readRDS('knightMeasuredDemo2018.RDS')
+
+# #For plotting raw data:
+# hh<- left_join(h2,hm)
+# hh<- filter(hh,trialnum %in% unique(hm$trialnum))
+# saveRDS(hh,'AntiSaccadeTest3.RDS')
+```
+
+
+```{r}
+#Based on the previous report, I'm rejecting trials with 20 or more interpolated data points during the detected primary gaze shift, and trials where the latency is too short or too long. These ranges can be adjusted if future investigation warrants. 
+
+hm %>%
+  mutate(gaze.onset.ms=(gaze.onset-200)/samplerate) %>%
+  filter(missing.gs<20,
+         gaze.onset.ms>150,
+         gaze.onset.ms<500) %>%
+  
+  ungroup()->
+  hpp
+
+hpp <- mutate(hpp,amp.bins.combined=cut(abs(target.amp),breaks=c(0,10,20,30,40,50,60,70,80)))
+
+hpp <- mutate(hpp,amp.bins.combined=cut(abs(target.amp),breaks=c(0,20,40,60,80)))
+```
+
+```{r GS latency,fig.height=7}
+ggplot(filter(hpp,!is.na(amp.bins.combined)))+
+  geom_boxplot(aes(amp.bins.combined,abs(peak.gaze.velocity),fill=block))+
+  ylab('Peak gaze shift velocity (deg/s)')+
+  xlab('Target amplitude bins combined left and right (deg)')+
+  theme_minimal()+
+  ggtitle('comparison of pre and post peak gaze velocity')+
+  facet_wrap(~subject,ncol=1)
+# 
+# ggplot(hpp,aes(abs(target.amp),abs(peak.gaze.velocity),color=block))+
+#   geom_point()+
+#   stat_smooth(method='lm')+
+#   ylab('Peak gaze shift velocity (deg/s)')+
+#   xlab('Target Amplitude (deg)')+
+#   theme_minimal()+
+#   ggtitle('comparison of pre and post peak gaze velocity')+
+#   facet_wrap(~subject,ncol=1)
+```
+
+```{r plots,fig.height=7}
+ggplot(filter(hpp,!is.na(amp.bins.combined)))+
+  geom_boxplot(aes(amp.bins.combined,gaze.onset.ms,fill=block))+
+  ylab('Gaze Shift Latency (ms)')+
+  xlab('Target amplitude bins combined left and right (deg)')+
+  theme_minimal()+
+  ggtitle('comparison of pre and post mean Gaze latency')+
+  facet_wrap(~subject,ncol=1)
+
+# ggplot(hpp,aes(abs(target.amp),gaze.onset.ms,color=block))+
+#   geom_point()+
+#   ylab('Gaze Shift Latency (ms)')+
+#   xlab('Target amplitude combined left and right (deg)')+
+#   stat_smooth(method='lm')+
+#   theme_minimal()+
+#   ggtitle('comparison of pre and post mean Gaze latency')+
+#   facet_wrap(~subject,ncol=1)
+```
+
+c. comparison of pre and post mean primary Gaze gain
+
+```{r GS gain,fig.height=7}
+ggplot(filter(hpp,!is.na(amp.bins.combined)))+
+  geom_boxplot(aes(amp.bins.combined,abs(gaze.amp),fill=block))+
+  ylab('Primary Gaze amplitude (deg)')+
+  xlab('Target amplitude bins combined left and right (deg)')+
+  theme_minimal()+
+  ggtitle('comparison of pre and post peak gaze gain')+
+  facet_wrap(~subject,ncol=1)
+
+# ggplot(hpp,aes(abs(target.amp),abs(gaze.amp),color=block))+
+#   geom_point()+
+#   stat_smooth(method='lm')+
+#   ylab('Primary Gaze amplitude (deg)')+
+#   xlab('Target Amplitude (deg)')+
+#   theme_minimal()+
+#   ggtitle('comparison of pre and post peak gaze gain')+
+#   facet_wrap(~subject,ncol=1)
+```
+
+##Head movements
+The plots here only include trials where head movements met the criteria for inclusion. This means that many trials without head movements are omitted. 
+
+e.comparison of pre and post mean Head latency
+
+Note that there is significantly less head movement 
+
+```{r headlatency,fig.height=7}
+hpp %>% 
+  filter(head.onset<gaze.onset+100,
+         head.onset>gaze.onset) %>%
+  mutate(head.onset.ms=(head.onset-200)/samplerate)->
+  hphead
+
+hphead %>%
+  filter(!is.na(amp.bins.combined)) %>%
+  ggplot()+
+  geom_boxplot(aes(amp.bins.combined,head.onset.ms,fill=block))+
+  ylab('Head movement latency (ms)')+
+  xlab('Target amplitude bins combined left and right (deg)')+
+  theme_minimal()+
+  ggtitle('comparison of pre and post mean Head latency')+
+  facet_wrap(~subject,ncol=1)
+
+# ggplot(hphead,aes(abs(target.amp),abs(head.onset.ms),color=block))+
+#   geom_point()+
+#   stat_smooth(method='lm')+
+#   ylab('Head Movement latency (ms)')+
+#   xlab('Target Amplitude (deg)')+
+#   theme_minimal()+
+#   ggtitle('comparison of pre and post mean Head latency')+
+#   facet_wrap(~subject,ncol=1)
+```
+
+```{r headvelocity,fig.height=7}
+ggplot(filter(hphead,!is.na(amp.bins.combined)))+
+  geom_boxplot(aes(amp.bins.combined,abs(peak.head.velocity),fill=block))+
+  ylab('Peak head velocity (deg/s)')+
+  xlab('Target amplitude bins combined left and right (deg)')+
+  theme_minimal()+
+  ggtitle('comparison of pre and post mean Head peak velocity')+
+  facet_wrap(~subject,ncol=1)
+
+# ggplot(hphead,aes(abs(target.amp),abs(peak.head.velocity),color=block))+
+#   geom_point()+
+#   stat_smooth(method='lm')+
+#   ylab('Peak Head Velocity (deg/s)')+
+#   xlab('Target Amplitude (deg)')+
+#   theme_minimal()+
+#   ggtitle('comparison of pre and post mean Head peak velocity')+
+#   facet_wrap(~subject,ncol=1)
+```
+
+
+#Some Statistics
+As you can probably tell, once the data are organized and measured, the process of making the plots is straightforward and a matter of preference. 
+
+Doing the stats is similarly easy in terms of the number of lines of code required, but it requires careful attention to what is being measured. Here is an example: 
+
+```{r}
+ggplot(filter(hpp,!is.na(amp.bins.combined)))+
+  geom_boxplot(aes(amp.bins.combined,abs(peak.gaze.velocity),fill=block))+
+  ylab('Peak gaze shift velocity (deg/s)')+
+  xlab('Target amplitude bins combined left and right (deg)')+
+  theme_minimal()+
+  ggtitle('comparison of pre and post peak gaze velocity')+
+  facet_wrap(~subject,ncol=1)
+
+hpp %>%
+  mutate(blocknum=as.factor(str_sub(block,7)))%>%
+  filter(!is.na(amp.bins.combined),
+         blocknum<=2) %>%  
+  group_by(subject,amp.bins.combined) %>%
+  do(peak.gaze.velocity.p=t.test(abs(peak.gaze.velocity)~blocknum,data=.)$p.value)->
+  stats1
+
+
+kable(stats1)
+
+filter(stats1,peak.gaze.velocity.p<0.05)
+
+
+```
+
+```{r}
+hpp %>%
+  filter(!is.na(amp.bins.combined)) %>%
+  mutate(blocknum=as.factor(str_sub(block,7)))%>%
+  group_by(subject,amp.bins.combined) %>%
+  do(peak.gaze.velocity.kw=kruskal.test(peak.gaze.velocity~blocknum,data=.)$p.value) %>%
+  mutate(peak.gaze.velocity.kw=as.numeric(peak.gaze.velocity.kw))->
+  hpa
+
+hpa$peak.gaze.velocity.kw<-as.numeric(hpa$peak.gaze.velocity.kw)
+```
+

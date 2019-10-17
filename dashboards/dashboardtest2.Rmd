@@ -1,0 +1,223 @@
+---
+title: "Gaze Shifts and Concussions"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    # source_code: embed
+runtime: shiny
+---
+
+```{r global, include=FALSE}
+# load data in 'global' chunk so it can be shared by all users of the dashboard
+library(ggplot2)
+library(mgcv)
+library(plotly)
+library(ggpubr)
+library(dplyr)
+# dataset <- diamonds
+# dataset <- readRDS('KnightData3-2-2018.RDS')
+# dataset <- readRDS('KnightBoxplotData3-2-2018.RDS')
+
+
+# hm <- readRDS('dashboardData3-3-2018.RDS')
+# hm <- readRDS('dashboardData2018-03-19.RDS')
+# hm <- readRDS('dashboardData2019-1-21.RDS')
+hm <- readRDS('output/dashboard2019-10-16.RDS')
+samplerate<- 304.7508/1000
+hm %>%
+  mutate(gaze.onset.ms=(gaze.onset-200)/samplerate,
+         head.onset.ms=(head.onset-200)/samplerate,
+         gaze.dur.ms=(gaze.dur)/samplerate,
+         IEPr=IEP*sign(gaze.amp),
+         gaze.gain=gaze.amp/target.amp) %>%
+  filter(missing.gs<15,
+         gaze.onset.ms>150,
+         gaze.onset.ms<500,
+         abs(peak.gaze.velocity) > 200) %>%
+  ungroup() %>%
+  select(peak.gaze.velocity,
+         gaze.onset.ms,
+         head.onset.ms,
+         gaze.dur.ms,
+         gaze.gain,
+         peak.head.velocity,
+         head.contribution,
+         gaze.amp,
+         gaze.dur,
+         subject,
+         block,
+         blocknum,
+         trialnum,
+         target.amp,
+         head.amp,
+         IEPr,
+         post.VOR.EP,
+         gaze.steps,
+         total.gaze.amp,
+         total.gaze.dur,
+         total.head.contribution)->
+  hpp
+
+# hpp <- mutate(hpp,amp.bins.combined=cut(abs(target.amp),breaks=c(0,10,20,30,40,50,60,70,80)))
+
+hpp <- mutate(hpp,amp.bins.20 = cut(abs(target.amp),breaks=c(0,20,40,60,80)))
+
+hpp <- mutate(hpp,amp.bins.15 = cut(abs(target.amp),breaks=c(0,15,30,45,60,75,90)))
+
+hpp <- mutate(hpp,amp.bins.10 = cut(abs(target.amp),breaks=c(0,10,20,30,40,50,60,70,80,90)))
+
+hpp <- mutate(hpp,gaze.amp.bins.10 = cut(abs(gaze.amp),breaks=c(0,10,20,30,40,50,60,70,80,90)))
+
+hpp <-  mutate(hpp, iep_centered_10 = case_when(
+          abs(IEPr) <= 10 ~ "centered",
+          TRUE ~ "off-center"),
+               iep_bin_15= case_when(
+          IEPr > 0 & IEPr <=15 ~ '(0,15]',
+          IEPr > 15 & IEPr <=30 ~ '(15,30]',
+          IEPr < 0 & IEPr >= -15 ~ '[-15,0)',
+          IEPr < -15 & IEPr >= -30 ~ '[-30,-15)'),
+          
+          iep_bin_6= case_when(
+            abs(IEPr) < 6 ~ '(-6, 6)',
+            IEPr > 6 & IEPr <=18 ~ '(6,18]',
+            IEPr > 18 & IEPr <=30 ~ '(18,30]',
+            IEPr < -6 & IEPr >= -18 ~ '[-18,6)',
+            IEPr < -18 & IEPr >= -30 ~ '[-30,-18)'),
+          gaze_dir = case_when(
+            gaze.amp> 0 ~ 'RIGHTWARD',
+            gaze.amp<0 ~ 'LEFTWARD'
+          ),
+          iep_centered = as.factor(iep_centered_10),
+          iep_bin_6 = as.factor(iep_bin_6),
+          iep_bin_15 = as.factor(iep_bin_15),
+          gaze_dir = as.factor(gaze_dir))
+
+#remove NA bins and extra blocks
+hpp %>%
+  filter(!is.na(amp.bins.15))->
+  hpp
+
+hpp %>%
+  mutate(blocknum= as.factor(blocknum),
+         block= as.factor(block),
+         subject=as.factor(subject))->
+  dataset
+
+
+```
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+
+selectizeInput(inputId='subjects', label='Select Subjects', choices=unique(hpp$subject), selected = unique(hpp$subject)[1], multiple = TRUE)
+
+
+checkboxInput('jitter', 'Jitter', value = TRUE)
+checkboxInput('smooth', 'Smooth', value = FALSE)
+checkboxInput('absX','Absolute X Value',value=FALSE)
+checkboxInput('absY','Absolute Y Value',value=TRUE)
+checkboxInput('plotall','Plot All Timepoints',value=FALSE)
+
+radioButtons('plottype','Plot Type',choices=c('box','point'))
+
+selectInput('x', 'X', names(dataset),'blocknum')
+selectInput('y', 'Y', names(dataset), 'peak.gaze.velocity')
+
+selectInput('color', 'Color', c('None', names(dataset)))
+selectInput('fill', 'Fill', c('None',names(dataset[sapply(dataset,is.factor)])),'block')
+
+selectInput('facet_row', 'Facet Row',
+            c(None='.', names(dataset[sapply(dataset, is.factor)])),'subject')
+selectInput('facet_col', 'Facet Column',
+            c(None='.', names(dataset[sapply(dataset, is.factor)])),'amp.bins.15')
+```
+
+Outputs {.tabset}
+-----------------------------------------------------------------------
+
+### Plot1
+
+```{r}
+plotData <- reactive({
+  if (input$plotall){
+  dataset %>%
+    filter(subject %in% input$subjects)
+  } else{
+    dataset %>%
+      filter(subject %in% input$subjects,
+             as.numeric(blocknum)<=2)
+  }
+  # dataset[sample(nrow(dataset), input$sampleSize),]
+})
+
+renderPlotly({
+  
+  if (input$absX & input$absY){
+    p <- ggplot(plotData(), aes_string(x=paste0('abs(',input$x,')'),y=paste0('abs(',input$y,')')))
+  }else if (input$absY){
+     p <- ggplot(plotData(), aes_string(x=input$x, y=paste0('abs(',input$y,')')))
+  }else if(input$absX){
+    p <- ggplot(plotData(), aes_string(x=paste0('abs(',input$x,')', y=input$y))) 
+  }else{
+    p <- ggplot(plotData(), aes_string(x=input$x, y=input$y))
+  }
+  if (input$plottype=='point')
+    p<-p+ geom_point()
+  if (input$plottype=='box')
+    p<- p+geom_boxplot()
+    
+  
+  
+  if (input$color != 'None')
+    p <- p + aes_string(color=input$color)
+  
+  if (input$fill != 'None')
+    p <- p + aes_string(fill=input$fill)
+  
+  facets <- paste(input$facet_row, '~', input$facet_col)
+  if (facets != '. ~ .')
+    p <- p + facet_grid(facets)
+  
+  if (input$jitter)
+    p <- p + geom_jitter()
+  if (input$smooth)
+    p <- p + geom_smooth()
+  
+  print(ggplotly(p))
+  # p
+})
+```
+
+
+### BoxPlotStats
+
+```{r}
+renderPlot({
+  
+  # if (input$abs){
+  #   p <- ggplot(plotData(), aes_string(x=input$x, y=paste0('abs(',input$y,')'))) 
+  # }else{
+  #   p <- ggplot(plotData(), aes_string(x=input$x, y=input$y)) 
+  # }
+  if (input$absY){
+    p<-  ggboxplot( plotData(), x = "blocknum", y=paste0('abs(',input$y,')'),
+          color = "blocknum", palette = "jco",
+          add = "jitter",
+          # facet.by = c("subject","amp.bins.15"), short.panel.labs = TRUE)
+          facet.by = c(input$facet_row,input$facet_col), short.panel.labs = TRUE)
+  }else{
+     p<-  ggboxplot( plotData(), x = "blocknum", y=input$y,
+          color = "blocknum", palette = "jco",
+          add = "jitter",
+          # facet.by = c("subject","amp.bins.15"), short.panel.labs = TRUE)
+          facet.by = c(input$facet_row,input$facet_col), short.panel.labs = TRUE)
+  }
+
+  p<-p + stat_compare_means(label = "p.signif")
+  
+  print(p)
+})
+```

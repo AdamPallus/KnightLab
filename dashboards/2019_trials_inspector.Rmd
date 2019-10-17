@@ -1,0 +1,96 @@
+---
+title: "2019 Trials Inspector"
+author: "Adam"
+date: "February 10, 2019"
+output: 
+html_document: 
+self_contained: no
+runtime: shiny
+---
+
+* Thick black lines are target position.
+* Green line is gaze position.
+* Blue line is head position.
+* Solid vertical lines indicate movement onset (gaze = green, head = blue)
+* Dashed vertical lines indicate movement offset
+* Trials with multiple gaze shifts have a second dashed green line for total GS offset
+
+```{r echo=FALSE} 
+library(knitr)
+opts_chunk$set(echo=FALSE)
+```
+
+```{r,message=FALSE}
+
+library(ggplot2)
+library(dplyr)
+library(plotly)
+
+
+```
+
+
+```{R SHINYTRY, warning=FALSE}
+#In order to make the shiny app load fast, I'm just saving the output. See BoostrapSaccades.Rmd for the actual analysis.
+# z<-readRDS(file="Bee13forshiny.RDS")
+# hh<- readRDS('knightdemo.RDS')
+# hh<- readRDS('knightdemo2.RDS')
+hh<- readRDS('2019test.RDS')
+samplerate<- 304.7508/1000
+
+plotTrial<- function(hh){
+  # cat(hh$blinktrial[1])
+  gp<- ggplot(hh %>%
+          mutate(counter = counter*samplerate))+
+          geom_line(aes(counter, G-H), color = 'hotpink')+
+          geom_line(aes(counter, H), color = 'darkblue')+
+          geom_line(aes(counter, G), color = 'darkgreen')+
+          geom_point(aes(counter, Targ))+
+          geom_vline(aes(xintercept = gaze.onset*samplerate), 
+                     color = 'darkgreen')+
+          geom_vline(aes(xintercept = gaze.offset*samplerate), 
+                     linetype = 2, color = 'darkgreen')+
+          geom_vline(aes(xintercept = total.gaze.offset*samplerate),
+                     linetype = 2, color = 'darkgreen')+
+          geom_vline(aes(xintercept = head.onset*samplerate),
+                     color = 'darkblue')+
+          geom_vline(aes(xintercept = head.offset*samplerate), 
+                     linetype = 2,color = 'darkblue')+
+          xlab('Time (ms)')+
+          ylab('Position (deg)')
+    
+
+    gp
+}
+
+
+inputPanel(
+  
+  selectInput(inputId= 'blockChoice',
+              label='Choose block:',
+              choices=list("CP48ST1", "CP48ST2")),
+  
+  sliderInput("TrialChoice", label = "Select a movement:",
+              min=1,
+              max=length(unique(hh$trialnum)),
+              value=1,
+              step=1)
+  
+
+)
+
+renderPlotly({
+  
+    chosentrial<-input$TrialChoice
+    blockchoice<- input$blockChoice
+    
+    p<-plotTrial(filter(hh,trialnum==chosentrial,block==blockchoice))
+    print(ggplotly(p))
+
+
+})
+
+```
+
+
+
