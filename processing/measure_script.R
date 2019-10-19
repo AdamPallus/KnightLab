@@ -31,6 +31,11 @@ h%>%
   filter(!is.na(trialnum))->
   h
 
+h %>%
+  group_by(block, trialnum) %>%
+  mutate(Targ = replace(Targ, (counter< 200 & task=='AS'), 0)) ->
+  h
+
 #add function to save the files as CSVs for opening in Spike2
 #write.csv(filter(h, block == 'aj28-ST-20150818'), 'spike2test.csv') ##
 
