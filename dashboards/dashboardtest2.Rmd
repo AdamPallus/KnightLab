@@ -16,8 +16,15 @@ library(plotly)
 library(ggpubr)
 library(dplyr)
 
-hm <- readRDS('output/newdashboard2019-10-19.RDS')
+task = 'ST'
+hm <- readRDS(paste0('output/',task,'/newdashboard2019-10-19.RDS'))
 samplerate<- 304.7508/1000
+
+hm %>%
+  group_by(subject) %>%
+  mutate(block_simple = dense_rank(blocknum))->
+  hm
+
 hm %>%
   mutate(gaze.onset.ms=(gaze.onset-200)/samplerate,
          head.onset.ms=(head.onset-200)/samplerate,
@@ -27,9 +34,11 @@ hm %>%
   filter(missing.gs<15,
          gaze.onset.ms>150,
          gaze.onset.ms<500,
+         #abs(IGE) < 15, #only keep trials with initial gaze on target
          abs(peak.gaze.velocity) > 200) %>%
   ungroup() %>%
-  select(peak.gaze.velocity,
+  select(block_simple,
+         peak.gaze.velocity,
          gaze.onset.ms,
          head.onset.ms,
          gaze.dur.ms,
@@ -45,6 +54,7 @@ hm %>%
          target.amp,
          head.amp,
          IEPr,
+         IGP,
          post.VOR.EP,
          gaze.steps,
          total.gaze.amp,
@@ -92,7 +102,7 @@ hpp %>%
   hpp
 
 hpp %>%
-  mutate(blocknum= as.factor(blocknum),
+  mutate(blocknum= as.factor(block_simple),
          block= as.factor(block),
          subject=as.factor(subject))->
   dataset
