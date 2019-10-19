@@ -26,8 +26,8 @@ disp(path)
 % end
 [savefile, savepath] = uiputfile('*.csv', 'Save Combined File');
 if savepath == 0
-    %disp('ABORTING...')
-    %return
+    disp('ABORTING...')
+    return
 %     ts = split(path,'\');
 %     sprintf('Auto saving as: %s', ts{10})
 %     sprintf('%s.csv',ts{10})

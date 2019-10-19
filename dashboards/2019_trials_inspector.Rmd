@@ -1,7 +1,6 @@
 ---
 title: "2019 Trials Inspector"
 author: "Adam"
-date: "February 10, 2019"
 output: 
 html_document: 
 self_contained: no
@@ -31,30 +30,27 @@ library(plotly)
 
 
 ```{R SHINYTRY, warning=FALSE}
-#In order to make the shiny app load fast, I'm just saving the output. See BoostrapSaccades.Rmd for the actual analysis.
-# z<-readRDS(file="Bee13forshiny.RDS")
-# hh<- readRDS('knightdemo.RDS')
-# hh<- readRDS('knightdemo2.RDS')
-hh<- readRDS('2019test.RDS')
+task = 'AS'
+hh<-readRDS(paste0('output/',task,'/newtrialtest2019-10-19.RDS'))
 samplerate<- 304.7508/1000
 
 plotTrial<- function(hh){
   # cat(hh$blinktrial[1])
   gp<- ggplot(hh %>%
-          mutate(counter = counter*samplerate))+
+          mutate(counter = counter/samplerate))+
           geom_line(aes(counter, G-H), color = 'hotpink')+
           geom_line(aes(counter, H), color = 'darkblue')+
           geom_line(aes(counter, G), color = 'darkgreen')+
           geom_point(aes(counter, Targ))+
-          geom_vline(aes(xintercept = gaze.onset*samplerate), 
+          geom_vline(aes(xintercept = gaze.onset/samplerate), 
                      color = 'darkgreen')+
-          geom_vline(aes(xintercept = gaze.offset*samplerate), 
+          geom_vline(aes(xintercept = gaze.offset/samplerate), 
                      linetype = 2, color = 'darkgreen')+
-          geom_vline(aes(xintercept = total.gaze.offset*samplerate),
+          geom_vline(aes(xintercept = total.gaze.offset/samplerate),
                      linetype = 2, color = 'darkgreen')+
-          geom_vline(aes(xintercept = head.onset*samplerate),
+          geom_vline(aes(xintercept = head.onset/samplerate),
                      color = 'darkblue')+
-          geom_vline(aes(xintercept = head.offset*samplerate), 
+          geom_vline(aes(xintercept = head.offset/samplerate), 
                      linetype = 2,color = 'darkblue')+
           xlab('Time (ms)')+
           ylab('Position (deg)')
@@ -68,7 +64,7 @@ inputPanel(
   
   selectInput(inputId= 'blockChoice',
               label='Choose block:',
-              choices=list("CP48ST1", "CP48ST2")),
+              choices=unique(hh$block)),
   
   sliderInput("TrialChoice", label = "Select a movement:",
               min=1,
