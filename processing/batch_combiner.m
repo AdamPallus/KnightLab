@@ -36,7 +36,8 @@ function batch_combiner()
 
         escfilefull = [path, ['/',behaviorfilename, '.mat']];
         if ~isfile(escfilefull)
-            escfilefull = [path, ['/',stimfile, '.mat']];
+            disp('Checking alternative name')
+            escfilefull = [path, ['/',stimfile]];
             if ~isfile(escfilefull)
                 disp(['Cannot find ',escfilefull])
                 disp(['Aborting ', savefilename])
@@ -51,7 +52,7 @@ function batch_combiner()
         if ~isfile(taskfilefull)
             %check with '-'
             disp('Checking alternative name')
-            taskfilefull = [path,'/',task,behaviorfilename];
+            taskfilefull = [path,'/',task,behaviorfilename,'.mat'];
             if ~isfile(taskfilefull)
                 disp(['Cannot find ',taskfilefull])
                 disp(['Aborting ', savefilename])
@@ -61,10 +62,10 @@ function batch_combiner()
                 disp(taskfilefull)
             end
         end
-        try
+        %try
             auto_combine(taskfilefull, escfilefull, [outputpath,'/'], savefilename, task)
-            disp(['****SUCCESS*** Saved ', savefilename,' Successfully'])
-        catch
-            disp(['Failed to combine ', savefilename])
+        %    disp(['****SUCCESS*** Saved ', savefilename,' Successfully'])
+        %catch
+        %    disp(['Failed to combine ', savefilename])
         end
     end
