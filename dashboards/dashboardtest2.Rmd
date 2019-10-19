@@ -15,15 +15,8 @@ library(mgcv)
 library(plotly)
 library(ggpubr)
 library(dplyr)
-# dataset <- diamonds
-# dataset <- readRDS('KnightData3-2-2018.RDS')
-# dataset <- readRDS('KnightBoxplotData3-2-2018.RDS')
 
-
-# hm <- readRDS('dashboardData3-3-2018.RDS')
-# hm <- readRDS('dashboardData2018-03-19.RDS')
-# hm <- readRDS('dashboardData2019-1-21.RDS')
-hm <- readRDS('output/dashboard2019-10-16.RDS')
+hm <- readRDS('output/newdashboard2019-10-19.RDS')
 samplerate<- 304.7508/1000
 hm %>%
   mutate(gaze.onset.ms=(gaze.onset-200)/samplerate,

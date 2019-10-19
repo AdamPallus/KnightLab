@@ -1,44 +1,8 @@
-function combineMAT()
+function auto_combine(taskfile, escfile, savepath, savefile,task)
 
-files = {};
-while length(files) ~= 2
-    [files path] = uigetfile('*.mat','Choose Experiment File',...
-        'multiselect', 'on');
-end
 
-if strcmp(files{1}(1:2), 'ST')
-    stfile = files{1};
-    escfile = flies{2};
-else
-    stfile = files{2};
-    escfile = files{1};
-end
-
-disp(path)
-
-% [stfile, stpath] = uigetfile('*.mat','Choose Experiment File');
-% if stfile == 0
-%     return
-% end
-% [escfile, escpath] = uigetfile('*.mat','Choose Data File');
-% if escfile == 0
-%     return
-% end
-[savefile, savepath] = uiputfile('*.csv', 'Save Combined File');
-if savepath == 0
-    disp('ABORTING...')
-    return
-%     ts = split(path,'\');
-%     sprintf('Auto saving as: %s', ts{10})
-%     sprintf('%s.csv',ts{10})
-%     savepath = path;
-end
-% xx = split(path, '\');
-% savefile = xx{10};
-% savepath = path;
-
-st = load([path stfile]);
-esc = load([path escfile]);
+st = load(taskfile);
+esc = load(escfile);
 
 hhv = esc.Data(:,71);
 rep = esc.Data(:,37);
@@ -65,6 +29,10 @@ sttable = table(st.xposition, ...
                 st.approxtime(1:end-1), ...
                 'variablenames', ...
             {'raw_targ', 'approxtime'});
+        
+if task == 'AS'
+    sttable.raw_targ = sttable.raw_targ+640;
+end
         
 sttable.adjustedtime = sttable.approxtime - file_diff;
 sttable.sampletime = ceil(sttable.adjustedtime/sample_rate);

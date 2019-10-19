@@ -9,19 +9,6 @@ samplerate<- 304.7508/1000
 
 h <- loadGazeFiles(path = files_location)
 
-#CHECK TO SEE IF RAW DATA LOOK APPROPRIATE (HEAD END GAZE MOVING IN SAME DIRECTION AS TARGET?)
-
-# manipulate(ggplot(h %>% filter(block == 'cg01ST1',
-#                                time > timestart, 
-#                                time<timestart+1000))+
-#              geom_line(aes(time, E), color = 'hotpink')+
-#              geom_line(aes(time, H), color = 'darkblue')+
-#              geom_line(aes(time, na.spline(G)), color = 'darkgreen')+
-#              geom_point(aes(time, Targ)),
-#            timestart = slider(1, 200000, step = 900 ))
-# 
-
-
 #'Next: remove noise, blinks etc
 h%>%
   select(G,H,Targ,block,subject,task,blocknum)%>%
@@ -38,22 +25,20 @@ h%>%
          Hv=parabolicdiff(H,7)*samplerate,
          # gazeshifts=markMovementsDouble(Gv,threshold1=100,threshold2=10),
          gazeshifts=markSaccadesDouble(Gv,threshold1=100,threshold2=20,
-                                       driftcorrect = TRUE,markFixations = FALSE),
+                                       driftcorrect = FALSE,markFixations = FALSE),
          headmovement=markMovementsDouble(Hv,threshold1=10,threshold2=4)) %>%
   do(markTagetMovements(t=.,buffer=200,threshold=200,trial.length=500))%>%
   filter(!is.na(trialnum))->
   h
 
-#CHECK AGAIN
-# manipulate({
-#   trials = unique(h$trialnum)
-#   ggplot(h %>% filter(block == 'CP48ST1',
-#                       trialnum == trials[chosenTrial],))+
-#              geom_line(aes(time, G-H), color = 'hotpink')+
-#              geom_line(aes(time, H), color = 'darkblue')+
-#              geom_line(aes(time, G), color = 'darkgreen')+
-#              geom_point(aes(time, Targ))},
-#            chosenTrial = slider(1, length(unique(h$trialnum))))
+#add function to save the files as CSVs for opening in Spike2
+#write.csv(filter(h, block == 'aj28-ST-20150818'), 'spike2test.csv') ##
+
+h %>%
+  group_by(block) %>%
+  arrange(blocknum) %>%
+  mutate(block_simple = min_rank(blocknum))->
+  h
 
 #'Next: measure trials
 
@@ -64,42 +49,10 @@ h %>%
   hm
 
 
-# #CHECK
-# hh <- left_join(h, hm)
-# 
-# manipulate({
-#   trials = unique(hh$trialnum)
-#   ggplot(hh %>% filter(block == 'cg01ST1',
-#                       trialnum == trials[chosenTrial]) %>%
-#            mutate(counter = counter*samplerate))+
-#     geom_line(aes(counter, G-H), color = 'hotpink')+
-#     geom_line(aes(counter, H), color = 'darkblue')+
-#     geom_line(aes(counter, G), color = 'darkgreen')+
-#     geom_point(aes(counter, Targ))+
-#     geom_vline(aes(xintercept = gaze.onset*samplerate), color = 'darkgreen')+
-#     geom_vline(aes(xintercept = gaze.offset*samplerate), linetype = 2, color = 'darkgreen')+
-#     geom_vline(aes(xintercept = total.gaze.offset*samplerate),linetype = 2, color = 'darkgreen')+
-#     geom_vline(aes(xintercept = head.onset*samplerate),color = 'darkblue')+
-#     geom_vline(aes(xintercept = head.offset*samplerate), linetype = 2,color = 'darkblue')+
-#     xlab('Time (ms)')
-#     
-#   },
-#   chosenTrial = slider(1, length(unique(hh$trialnum))))
+h <- left_join(h, hm)
+saveRDS(h, paste0('dashboards/output/newtrialetest', Sys.Date(),'.RDS'))
 
-## append to dashboard data
-# hm %>%
-#   ungroup() %>%
-#   mutate(subject = paste0(subject, 'n'))->
-#   hm
-
-
-# hm_old <- readRDS('dashboard2018-02-10.RDS')
-# 
-# hm_old %>% 
-#   filter(subject != 'CP48n') %>%
-#   bind_rows(hm)->
-#   hmfull
-output_file = paste0('dashboards/output/dashboard',Sys.Date(),'.RDS')
+output_file = paste0('dashboards/output/newdashboard', Sys.Date(),'.RDS')
 saveRDS(hm, output_file)
 
 

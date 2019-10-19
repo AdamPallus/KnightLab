@@ -33,14 +33,16 @@ fixH<- function(t){
   return(t)
 }
 
-loadfromMAT<- function(filepath = '~/knight/ConcussionGaze/fromtom/testoutput/',
-                       filename = 'AP17ST1.csv' ){
+loadfromMAT<- function(filepath = 'output/',
+                       filename = 'aj28-ST-20150818.csv' ){
   
   samplerate<- 304.7508/1000
   
   h = read.csv(paste0(filepath, filename),na.strings = "NaN")
   
-  names<-str_match(filename,"(^[a-zA-Z0-9]{4})([a-zA-Z0-9]{3})")
+  block = str_split(filename, fixed('.'))[[1]][1]
+  
+  names<-strsplit(block, '-')[[1]]
   
   #I don't know why there are NA values here in the time column, but na.rm works
   target_start = min(h$time[!is.na(h$raw_targ)],na.rm=T)
@@ -52,6 +54,7 @@ loadfromMAT<- function(filepath = '~/knight/ConcussionGaze/fromtom/testoutput/',
     select(sampletime,rep,raw_targ,hhv) %>%
     rename(time = sampletime,
            E = rep,
+           E2 = lep, 
            HV = hhv,
            Targ = raw_targ) %>%
     mutate(HV = replace(HV, abs(HV) > 400, 0),
@@ -59,12 +62,14 @@ loadfromMAT<- function(filepath = '~/knight/ConcussionGaze/fromtom/testoutput/',
            HV = HV,
            HV = HV*-1, #flip head left/right
            E = E*-1, #flip eye left/right
+           E2 = E2*-1,
            E=atan(E)*180/pi*2,
+           E2=atan(E2)*180/pi*2,
            H=cumsum(HV)/samplerate/1000,
-           block = names[1],
-           blocknum = as.numeric(str_sub(names[3],3)),
-           task = str_sub(names[3],1,2),
-           subject = names[2])->
+           block = block,
+           blocknum = as.numeric(names[3]),
+           task = (names[2]),
+           subject = names[1])->
     h
   
 
@@ -73,7 +78,8 @@ loadfromMAT<- function(filepath = '~/knight/ConcussionGaze/fromtom/testoutput/',
      group_by(block) %>%
      #mutate(H_old = H) %>%
      do(fixH(.)) %>%
-     mutate(G=H+E)->
+     mutate(G=H+E,
+            G2=H+E2)->
      h
   # h
   
