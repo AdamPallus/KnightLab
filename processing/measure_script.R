@@ -5,9 +5,10 @@ source('processing/loadfunctions.R')
 source('processing/knighthelperfunctions.R')
 
 files_location = 'data/'
+task = 'AS'
 samplerate<- 304.7508/1000
 
-h <- loadGazeFiles(path = files_location)
+h <- loadGazeFiles(path = files_location, task = task)
 
 #'Next: remove noise, blinks etc
 h%>%
@@ -39,11 +40,7 @@ h %>%
 #add function to save the files as CSVs for opening in Spike2
 #write.csv(filter(h, block == 'aj28-ST-20150818'), 'spike2test.csv') ##
 
-h %>%
-  group_by(block) %>%
-  arrange(blocknum) %>%
-  mutate(block_simple = min_rank(blocknum))->
-  h
+
 
 #'Next: measure trials
 
@@ -55,9 +52,9 @@ h %>%
 
 
 h <- left_join(h, hm)
-saveRDS(h, paste0('dashboards/output/newtrialetest', Sys.Date(),'.RDS'))
+saveRDS(h, paste0('dashboards/output/',task,'/newtrialtest', Sys.Date(),'.RDS'))
 
-output_file = paste0('dashboards/output/newdashboard', Sys.Date(),'.RDS')
+output_file = paste0('dashboards/output/',task,'/newdashboard', Sys.Date(),'.RDS')
 saveRDS(hm, output_file)
 
 

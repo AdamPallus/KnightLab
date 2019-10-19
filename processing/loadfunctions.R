@@ -51,7 +51,7 @@ loadfromMAT<- function(filepath = 'output/',
 
   h %>%
     fill(raw_targ) %>%
-    select(sampletime,rep,raw_targ,hhv) %>%
+    select(sampletime,rep,lep,raw_targ,hhv) %>%
     rename(time = sampletime,
            E = rep,
            E2 = lep, 
@@ -87,7 +87,9 @@ loadfromMAT<- function(filepath = 'output/',
 }
 
 
-loadGazeFiles<- function(referencefile=NULL,path='~/knight/ConcussionGaze/fromtom/testoutput/'){
+loadGazeFiles<- function(referencefile=NULL,
+                         path='data/',
+                         task = 'ST'){
   require(stringr)
   require(dplyr)
   require(data.table)
@@ -95,6 +97,7 @@ loadGazeFiles<- function(referencefile=NULL,path='~/knight/ConcussionGaze/fromto
 
   #get names of all files in path
   files <- list.files(path=path,pattern='*.csv')
+  files = files[files %like% task]
   nfiles<-length(files)
   
   if (nfiles>0){

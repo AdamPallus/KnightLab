@@ -30,12 +30,8 @@ library(plotly)
 
 
 ```{R SHINYTRY, warning=FALSE}
-#In order to make the shiny app load fast, I'm just saving the output. See BoostrapSaccades.Rmd for the actual analysis.
-# z<-readRDS(file="Bee13forshiny.RDS")
-# hh<- readRDS('knightdemo.RDS')
-# hh<- readRDS('knightdemo2.RDS')
-#hh<- readRDS('2019test.RDS')
-hh<-readRDS('output/newtrialetest2019-10-19.RDS')
+task = 'AS'
+hh<-readRDS(paste0('output/',task,'/newtrialtest2019-10-19.RDS'))
 samplerate<- 304.7508/1000
 
 plotTrial<- function(hh){
