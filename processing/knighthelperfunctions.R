@@ -370,6 +370,8 @@ measureTrial<- function(tt, buffer=200){
   }
   #measure target
   target.amp=tt$Targ[300]-tt$Targ[1]
+  #initial gaze error
+  IGE = tt$Targ[1] - IGP
   
   #assess missing
   Graw=replace(tt$Graw,tt$Graw==0,NA)
@@ -412,6 +414,7 @@ measureTrial<- function(tt, buffer=200){
             IGP,
             IEP,
             IEPr,
+            IGE,
             head.contribution,
             total.head.contribution,
             post.saccade.drift,
