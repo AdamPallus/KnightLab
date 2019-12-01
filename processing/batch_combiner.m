@@ -62,10 +62,10 @@ function batch_combiner()
                 disp(taskfilefull)
             end
         end
-        %try
+        try
             auto_combine(taskfilefull, escfilefull, [outputpath,'/'], savefilename, task)
         %    disp(['****SUCCESS*** Saved ', savefilename,' Successfully'])
-        %catch
-        %    disp(['Failed to combine ', savefilename])
+        catch
+            disp(['Failed to combine ', savefilename])
         end
     end
