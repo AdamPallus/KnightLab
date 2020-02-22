@@ -5,11 +5,11 @@ function batch_combiner()
 
     %
     try
-        disp('Master Sheet Loaded!')
+        disp('Loading Master Sheet...')
         df = readtable([path, file]);
 
     catch
-        disp('Failed to load sheet')
+        disp('Failed to load sheet!')
         return
     end
     %
@@ -25,13 +25,18 @@ function batch_combiner()
         stimfile = df.StimulusFile{row};
         task = df.Task{row};
         id = df.ID{row};
-
+        split_block = 1;
+        
         date_append = behaviorfilename(1:8); % should be yyyymmdd
-        savefilename = [id,'-',task,'-',date_append,'.csv'];
-
-        if isfile([outputpath,'/',savefilename])
-            disp(['Skipping ',savefilename, ': already combined'])
-            continue
+        savefilename = [id,'-',task,'-',date_append,'-',split_block,'.csv'];
+        
+        while isfile([outputpath,'/',savefilename])
+            split_block = split_block+1;
+            savefilename = [id,'-',task,'-',date_append,'-',split_block,'.csv'];
+            if split_block > 10
+                disp(['Skipping ',savefilename, ': too many'])
+                continue
+            end
         end
 
         escfilefull = [path, ['/',behaviorfilename, '.mat']];
