@@ -28,21 +28,21 @@ function batch_combiner()
         split_block = 1;
         
         date_append = behaviorfilename(1:8); % should be yyyymmdd
-        savefilename = [id,'-',task,'-',date_append,'-',split_block,'.csv'];
+        savefilename = [id,'-',task,'-',date_append,'-',num2str(split_block),'.csv'];
         
-        while isfile([outputpath,'/',savefilename])
+        while isfile([outputpath,'\',savefilename])
             split_block = split_block+1;
-            savefilename = [id,'-',task,'-',date_append,'-',split_block,'.csv'];
+            savefilename = [id,'-',task,'-',date_append,'-',num2str(split_block),'.csv'];
             if split_block > 10
                 disp(['Skipping ',savefilename, ': too many'])
                 continue
             end
         end
 
-        escfilefull = [path, ['/',behaviorfilename, '.mat']];
+        escfilefull = [path, ['\',behaviorfilename, '.mat']];
         if ~isfile(escfilefull)
             disp('Checking alternative name')
-            escfilefull = [path, ['/',stimfile]];
+            escfilefull = [path, ['\',stimfile]];
             if ~isfile(escfilefull)
                 disp(['Cannot find ',escfilefull])
                 disp(['Aborting ', savefilename])
@@ -53,11 +53,11 @@ function batch_combiner()
             end
         end
 
-        taskfilefull = [path,'/',task,stimfile];
+        taskfilefull = [path,'\',task,stimfile];
         if ~isfile(taskfilefull)
             %check with '-'
             disp('Checking alternative name')
-            taskfilefull = [path,'/',task,behaviorfilename,'.mat'];
+            taskfilefull = [path,'\',task,behaviorfilename,'.mat'];
             if ~isfile(taskfilefull)
                 disp(['Cannot find ',taskfilefull])
                 disp(['Aborting ', savefilename])
@@ -68,7 +68,7 @@ function batch_combiner()
             end
         end
         try
-            auto_combine(taskfilefull, escfilefull, [outputpath,'/'], savefilename, task)
+            auto_combine(taskfilefull, escfilefull, [outputpath,'\'], savefilename, task)
         %    disp(['****SUCCESS*** Saved ', savefilename,' Successfully'])
         catch
             disp(['Failed to combine ', savefilename])
