@@ -44,6 +44,9 @@ loadfromMAT<- function(filepath = 'output/',
   
   names<-strsplit(block, '-')[[1]]
   
+  #We added extra info for split blocks, but we want these to combine when we group by block
+  block = str_c(names[1:3],collapse='-')
+  
   #I don't know why there are NA values here in the time column, but na.rm works
   target_start = min(h$time[!is.na(h$raw_targ)],na.rm=T)
   
