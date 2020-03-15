@@ -27,7 +27,8 @@ function batch_combiner()
         id = df.ID{row};
 
         date_append = behaviorfilename(1:8); % should be yyyymmdd
-        savefilename = [id,'-',task,'-',date_append,'.csv'];
+        %savefilename = [id,'-',task,'-',date_append,'.csv'];
+        savefilename = [id,'-',task,'-',behaviorfilename,'.csv']; %TK test 2/14/20 so that second blocks are not ignored/skipped
 
         if isfile([outputpath,'/',savefilename])
             disp(['Skipping ',savefilename, ': already combined'])
@@ -62,10 +63,10 @@ function batch_combiner()
                 disp(taskfilefull)
             end
         end
-        %try
+        try
             auto_combine(taskfilefull, escfilefull, [outputpath,'/'], savefilename, task)
-        %    disp(['****SUCCESS*** Saved ', savefilename,' Successfully'])
-        %catch
-        %    disp(['Failed to combine ', savefilename])
+            disp(['****SUCCESS*** Saved ', savefilename,' Successfully'])
+        catch
+           disp(['Failed to combine ', savefilename])
         end
     end

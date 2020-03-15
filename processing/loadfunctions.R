@@ -34,7 +34,7 @@ fixH<- function(t){
 }
 
 loadfromMAT<- function(filepath = 'output/',
-                       filename = 'aj28-ST-20150818.csv' ){
+                       filename = 'aj28-ST-20150818.csv'){
   
   samplerate<- 304.7508/1000
   

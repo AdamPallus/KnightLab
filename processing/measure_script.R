@@ -5,7 +5,7 @@ source('processing/loadfunctions.R')
 source('processing/knighthelperfunctions.R')
 
 files_location = 'data/'
-task = 'AS'
+task = 'ST'
 samplerate<- 304.7508/1000
 
 h <- loadGazeFiles(path = files_location, task = task)

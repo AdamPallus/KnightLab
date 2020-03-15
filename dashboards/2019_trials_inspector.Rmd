@@ -1,10 +1,13 @@
 ---
 title: "2019 Trials Inspector"
 author: "Adam"
-output: 
-html_document: 
-self_contained: no
+output: null
+resource_files:
+- output/ST/newtrialtest2019-11-27.RDS
+- output/ST/newtrialtest2019-12-09.RDS
 runtime: shiny
+self_contained: no
+html_document: null
 ---
 
 * Thick black lines are target position.
@@ -30,8 +33,8 @@ library(plotly)
 
 
 ```{R SHINYTRY, warning=FALSE}
-task = 'AS'
-hh<-readRDS(paste0('output/',task,'/newtrialtest2019-10-19.RDS'))
+task = 'ST'
+hh<-readRDS(paste0('output/',task,'/newtrialtest2020-02-08.RDS'))
 samplerate<- 304.7508/1000
 
 plotTrial<- function(hh){
