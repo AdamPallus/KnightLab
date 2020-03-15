@@ -28,6 +28,7 @@ function batch_combiner()
         split_block = 1;
         
         date_append = behaviorfilename(1:8); % should be yyyymmdd
+
         savefilename = [id,'-',task,'-',date_append,'-',num2str(split_block),'.csv'];
         
         while isfile([outputpath,'\',savefilename])
@@ -69,7 +70,7 @@ function batch_combiner()
         end
         try
             auto_combine(taskfilefull, escfilefull, [outputpath,'\'], savefilename, task)
-        %    disp(['****SUCCESS*** Saved ', savefilename,' Successfully'])
+            disp(['****SUCCESS*** Saved ', savefilename,' Successfully'])
         catch
             disp(['Failed to combine ', savefilename])
         end

@@ -1,11 +1,15 @@
 ---
 title: "Gaze Shifts and Concussions"
-output: 
+resource_files:
+- output/ST/newdashboard2019-11-27.RDS
+- output/ST/newdashboard2019-12-09.RDS
+- output/AS/newdashboard2019-12-10.RDS
+- output/ST/newdashboard2020-02-16.RDS
+runtime: shiny
+output:
   flexdashboard::flex_dashboard:
     orientation: columns
     social: menu
-    # source_code: embed
-runtime: shiny
 ---
 
 ```{r global, include=FALSE}
@@ -17,7 +21,7 @@ library(ggpubr)
 library(dplyr)
 
 task = 'ST'
-hm <- readRDS(paste0('output/',task,'/newdashboard2019-10-19.RDS'))
+hm <- readRDS(paste0('output/',task,'/newdashboard2020-02-16.RDS'))
 samplerate<- 304.7508/1000
 
 hm %>%
@@ -34,6 +38,7 @@ hm %>%
   filter(missing.gs<15,
          gaze.onset.ms>150,
          gaze.onset.ms<500,
+         #gaze.gain<0,
          #abs(IGE) < 15, #only keep trials with initial gaze on target
          abs(peak.gaze.velocity) > 200) %>%
   ungroup() %>%
