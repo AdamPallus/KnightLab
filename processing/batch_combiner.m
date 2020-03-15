@@ -5,11 +5,11 @@ function batch_combiner()
 
     %
     try
-        disp('Master Sheet Loaded!')
+        disp('Loading Master Sheet...')
         df = readtable([path, file]);
 
     catch
-        disp('Failed to load sheet')
+        disp('Failed to load sheet!')
         return
     end
     %
@@ -25,20 +25,25 @@ function batch_combiner()
         stimfile = df.StimulusFile{row};
         task = df.Task{row};
         id = df.ID{row};
-
+        split_block = 1;
+        
         date_append = behaviorfilename(1:8); % should be yyyymmdd
-        %savefilename = [id,'-',task,'-',date_append,'.csv'];
-        savefilename = [id,'-',task,'-',behaviorfilename,'.csv']; %TK test 2/14/20 so that second blocks are not ignored/skipped
 
-        if isfile([outputpath,'/',savefilename])
-            disp(['Skipping ',savefilename, ': already combined'])
-            continue
+        savefilename = [id,'-',task,'-',date_append,'-',num2str(split_block),'.csv'];
+        
+        while isfile([outputpath,'\',savefilename])
+            split_block = split_block+1;
+            savefilename = [id,'-',task,'-',date_append,'-',num2str(split_block),'.csv'];
+            if split_block > 10
+                disp(['Skipping ',savefilename, ': too many'])
+                continue
+            end
         end
 
-        escfilefull = [path, ['/',behaviorfilename, '.mat']];
+        escfilefull = [path, ['\',behaviorfilename, '.mat']];
         if ~isfile(escfilefull)
             disp('Checking alternative name')
-            escfilefull = [path, ['/',stimfile]];
+            escfilefull = [path, ['\',stimfile]];
             if ~isfile(escfilefull)
                 disp(['Cannot find ',escfilefull])
                 disp(['Aborting ', savefilename])
@@ -49,11 +54,11 @@ function batch_combiner()
             end
         end
 
-        taskfilefull = [path,'/',task,stimfile];
+        taskfilefull = [path,'\',task,stimfile];
         if ~isfile(taskfilefull)
             %check with '-'
             disp('Checking alternative name')
-            taskfilefull = [path,'/',task,behaviorfilename,'.mat'];
+            taskfilefull = [path,'\',task,behaviorfilename,'.mat'];
             if ~isfile(taskfilefull)
                 disp(['Cannot find ',taskfilefull])
                 disp(['Aborting ', savefilename])
@@ -64,9 +69,9 @@ function batch_combiner()
             end
         end
         try
-            auto_combine(taskfilefull, escfilefull, [outputpath,'/'], savefilename, task)
+            auto_combine(taskfilefull, escfilefull, [outputpath,'\'], savefilename, task)
             disp(['****SUCCESS*** Saved ', savefilename,' Successfully'])
         catch
-           disp(['Failed to combine ', savefilename])
+            disp(['Failed to combine ', savefilename])
         end
     end
